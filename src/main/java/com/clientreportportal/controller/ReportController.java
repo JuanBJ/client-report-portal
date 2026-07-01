@@ -46,6 +46,18 @@ public class ReportController {
         Client client = clientRepository.findById(clientId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client not found"));
 
+        if (req.quarter() < 1 || req.quarter() > 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quarter must be between 1 and 4");
+        }
+        if (req.year() < 2000 || req.year() > 2100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year must be between 2000 and 2100");
+        }
+        reportRepository.findByClientIdAndQuarterAndYear(clientId, req.quarter(), req.year())
+            .ifPresent(existing -> {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Report already exists for Q" + req.quarter() + " " + req.year());
+            });
+
         QuarterlyReport report = new QuarterlyReport();
         report.setClient(client);
         report.setQuarter(req.quarter());

@@ -217,6 +217,23 @@ function renderBalanceInputs() {
 
 async function generateReport() {
   showReportError("");
+  const quarter = parseInt(document.getElementById("repQuarter").value);
+  const year = parseInt(document.getElementById("repYear").value);
+  if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
+    showReportError("Quarter must be between 1 and 4.");
+    return;
+  }
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    showReportError("Year must be between 2000 and 2100.");
+    return;
+  }
+  const existingReport = currentReports.find(r => r.quarter === quarter && r.year === year);
+  if (existingReport) {
+    showReportError(`A report already exists for Q${quarter} ${year}. Use it from Previous Reports below.`);
+    showSavedReport(existingReport.id);
+    return;
+  }
+
   const account_balances = currentClient.accounts.map(a => ({
     account_id: a.id, balance: parseFloat(document.getElementById(`bal_${a.id}`).value || 0)
   }));
@@ -224,8 +241,8 @@ async function generateReport() {
     liability_id: l.id, balance: parseFloat(document.getElementById(`liabal_${l.id}`).value || 0)
   }));
   const payload = {
-    quarter: parseInt(document.getElementById("repQuarter").value),
-    year: parseInt(document.getElementById("repYear").value),
+    quarter,
+    year,
     trust_property_value: parseFloat(document.getElementById("repTrust").value || 0),
     account_balances, liability_balances
   };
