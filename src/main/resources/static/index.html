@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AW Client Report Portal</title>
+<style>
+  :root { --blue: #1971c2; --green: #2f9e44; --red: #e03131; --gray: #495057; --bg: #f8f9fa; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); margin: 0; color: #212529; }
+  header { background: var(--blue); color: white; padding: 18px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  main { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
+  .panel { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .panel h2 { margin-top: 0; font-size: 16px; color: var(--gray); text-transform: uppercase; letter-spacing: .04em; }
+  label { display: block; font-size: 13px; margin: 10px 0 4px; color: var(--gray); }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  button { background: var(--blue); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 14px; }
+  button.secondary { background: var(--gray); }
+  button:hover { opacity: .9; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e9ecef; font-size: 14px; }
+  .client-card { padding: 10px; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+  .client-card:hover { border-color: var(--blue); }
+  .client-card.active { border-color: var(--blue); background: #e7f1ff; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+  .pill.RETIREMENT { background: #d3f9d8; color: var(--green); }
+  .pill.NON_RETIREMENT { background: #d0ebff; color: var(--blue); }
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .calc-item { background: #f1f3f5; padding: 10px 14px; border-radius: 8px; }
+  .calc-item .label { font-size: 12px; color: var(--gray); }
+  .calc-item .value { font-size: 18px; font-weight: 700; }
+  .hidden { display: none; }
+  .pdf-links a { display: inline-block; margin-right: 10px; margin-top: 10px; padding: 8px 14px; background: var(--green); color: white; border-radius: 6px; text-decoration: none; font-size: 14px; }
+</style>
+</head>
+<body>
+<header><h1>AW Client Report Portal</h1></header>
+<main>
+
+  <div class="panel">
+    <h2>1. Clients</h2>
+    <div id="clientList"></div>
+    <button onclick="showNewClientForm()">+ New Client</button>
+
+    <div id="newClientForm" class="hidden">
+      <div class="row">
+        <div><label>Client 1 name</label><input id="c1name" /></div>
+        <div><label>Client 2 name (optional)</label><input id="c2name" /></div>
+      </div>
+      <div class="row">
+        <div><label>Monthly salary (Inflow)</label><input id="salary" type="number" /></div>
+        <div><label>Monthly expense budget (Outflow)</label><input id="expense" type="number" /></div>
+        <div><label>Insurance deductibles (total)</label><input id="deductibles" type="number" value="0" /></div>
+      </div>
+      <button onclick="createClient()">Save Client</button>
+    </div>
+  </div>
+
+  <div id="detailPanel" class="hidden">
+    <div class="panel">
+      <h2>2. Accounts &amp; Liabilities</h2>
+      <table id="accountsTable"><thead><tr><th>Type</th><th>Bucket</th><th>Owner</th><th>Last 4</th></tr></thead><tbody></tbody></table>
+      <div class="row">
+        <div><label>Account type</label><input id="accType" placeholder="ROTH IRA, CHECKING..." /></div>
+        <div><label>Bucket</label>
+          <select id="accBucket"><option value="RETIREMENT">Retirement</option><option value="NON_RETIREMENT">Non-Retirement</option><option value="TRUST">Trust</option></select>
+        </div>
+        <div><label>Owner</label>
+          <select id="accOwner"><option value="CLIENT_1">Client 1</option><option value="CLIENT_2">Client 2</option><option value="JOINT">Joint</option></select>
+        </div>
+        <div><label>Last 4</label><input id="accLast4" /></div>
+      </div>
+      <label><input type="checkbox" id="accIsReserve" style="width:auto;display:inline"/> Is Private Reserve account (SACS)</label>
+      <label><input type="checkbox" id="accIsInvestment" style="width:auto;display:inline"/> Is Schwab investment account (SACS target)</label>
+      <button onclick="addAccount()">+ Add Account</button>
+
+      <table id="liabilitiesTable" style="margin-top:20px"><thead><tr><th>Type</th><th>Rate</th></tr></thead><tbody></tbody></table>
+      <div class="row">
+        <div><label>Liability type</label><input id="liaType" placeholder="Mortgage" /></div>
+        <div><label>Interest rate %</label><input id="liaRate" type="number" /></div>
+      </div>
+      <button onclick="addLiability()">+ Add Liability</button>
+    </div>
+
+    <div class="panel">
+      <h2>3. Quarterly Report - Enter Balances</h2>
+      <div class="row">
+        <div><label>Quarter</label><input id="repQuarter" type="number" min="1" max="4" value="2" /></div>
+        <div><label>Year</label><input id="repYear" type="number" value="2026" /></div>
+        <div><label>Trust / Home value (Zillow)</label><input id="repTrust" type="number" value="0" /></div>
+      </div>
+      <div id="balanceInputs"></div>
+      <div id="liabilityBalanceInputs"></div>
+      <button onclick="generateReport()">Calculate &amp; Generate Report</button>
+    </div>
+
+    <div id="resultsPanel" class="panel hidden">
+      <h2>4. Results</h2>
+      <div class="calc-grid" id="calcGrid"></div>
+      <div class="pdf-links" id="pdfLinks"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = "/api";
+let clients = [];
+let currentClient = null;
+
+async function loadClients() {
+  const res = await fetch(`${API}/clients`);
+  clients = await res.json();
+  const list = document.getElementById("clientList");
+  list.innerHTML = clients.map(c => `
+    <div class="client-card ${currentClient && currentClient.id===c.id ? 'active':''}" onclick="selectClient(${c.id})">
+      <strong>${c.client1_name}${c.client2_name ? ' & ' + c.client2_name : ''}</strong><br/>
+      <small>Salary: $${c.monthly_salary.toLocaleString()} | Expenses: $${c.monthly_expense_budget.toLocaleString()}</small>
+    </div>`).join("") || "<p>No clients yet.</p>";
+}
+
+function showNewClientForm() {
+  document.getElementById("newClientForm").classList.remove("hidden");
+}
+
+async function createClient() {
+  const payload = {
+    client1_name: document.getElementById("c1name").value,
+    client2_name: document.getElementById("c2name").value || null,
+    monthly_salary: parseFloat(document.getElementById("salary").value || 0),
+    monthly_expense_budget: parseFloat(document.getElementById("expense").value || 0),
+    insurance_deductibles_total: parseFloat(document.getElementById("deductibles").value || 0),
+  };
+  const res = await fetch(`${API}/clients`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+  const client = await res.json();
+  document.getElementById("newClientForm").classList.add("hidden");
+  await loadClients();
+  selectClient(client.id);
+}
+
+async function selectClient(id) {
+  const res = await fetch(`${API}/clients/${id}`);
+  currentClient = await res.json();
+  await loadClients();
+  document.getElementById("detailPanel").classList.remove("hidden");
+  document.getElementById("resultsPanel").classList.add("hidden");
+  renderAccountsAndLiabilities();
+  renderBalanceInputs();
+}
+
+function renderAccountsAndLiabilities() {
+  const accBody = document.querySelector("#accountsTable tbody");
+  accBody.innerHTML = currentClient.accounts.map(a => `
+    <tr><td>${a.account_type}</td><td><span class="pill ${a.bucket}">${a.bucket}</span></td><td>${a.owner}</td><td>${a.account_number_last4||''}</td></tr>
+  `).join("");
+
+  const liaBody = document.querySelector("#liabilitiesTable tbody");
+  liaBody.innerHTML = currentClient.liabilities.map(l => `<tr><td>${l.liability_type}</td><td>${l.interest_rate}%</td></tr>`).join("");
+}
+
+async function addAccount() {
+  const payload = {
+    bucket: document.getElementById("accBucket").value,
+    owner: document.getElementById("accOwner").value,
+    account_type: document.getElementById("accType").value,
+    account_number_last4: document.getElementById("accLast4").value,
+    is_private_reserve: document.getElementById("accIsReserve").checked,
+    is_investment_for_target: document.getElementById("accIsInvestment").checked,
+  };
+  await fetch(`${API}/clients/${currentClient.id}/accounts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+  await selectClient(currentClient.id);
+}
+
+async function addLiability() {
+  const payload = { liability_type: document.getElementById("liaType").value, interest_rate: parseFloat(document.getElementById("liaRate").value||0) };
+  await fetch(`${API}/clients/${currentClient.id}/liabilities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+  await selectClient(currentClient.id);
+}
+
+function renderBalanceInputs() {
+  const div = document.getElementById("balanceInputs");
+  div.innerHTML = "<h3 style='font-size:14px'>Account Balances</h3>" + currentClient.accounts.map(a => `
+    <div class="row"><div style="flex:2"><label>${a.account_type} (${a.owner})</label></div>
+    <div><input type="number" id="bal_${a.id}" placeholder="Balance" /></div></div>
+  `).join("");
+
+  const liaDiv = document.getElementById("liabilityBalanceInputs");
+  liaDiv.innerHTML = "<h3 style='font-size:14px'>Liability Balances</h3>" + currentClient.liabilities.map(l => `
+    <div class="row"><div style="flex:2"><label>${l.liability_type}</label></div>
+    <div><input type="number" id="liabal_${l.id}" placeholder="Balance" /></div></div>
+  `).join("");
+}
+
+async function generateReport() {
+  const account_balances = currentClient.accounts.map(a => ({
+    account_id: a.id, balance: parseFloat(document.getElementById(`bal_${a.id}`).value || 0)
+  }));
+  const liability_balances = currentClient.liabilities.map(l => ({
+    liability_id: l.id, balance: parseFloat(document.getElementById(`liabal_${l.id}`).value || 0)
+  }));
+  const payload = {
+    quarter: parseInt(document.getElementById("repQuarter").value),
+    year: parseInt(document.getElementById("repYear").value),
+    trust_property_value: parseFloat(document.getElementById("repTrust").value || 0),
+    account_balances, liability_balances
+  };
+  const res = await fetch(`${API}/clients/${currentClient.id}/reports`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+  const report = await res.json();
+  const calcRes = await fetch(`${API}/reports/${report.id}/calculate`);
+  const calc = await calcRes.json();
+  renderResults(report, calc);
+}
+
+function renderResults(report, calc) {
+  document.getElementById("resultsPanel").classList.remove("hidden");
+  const items = [
+    ["Inflow", calc.inflow], ["Outflow", calc.outflow], ["Excess to Reserve", calc.excess_to_reserve],
+    ["Private Reserve Balance", calc.private_reserve_balance], ["Reserve Target", calc.reserve_target],
+    ["Reserve Status", calc.reserve_fully_funded ? "Fully Funded" : "Below Target"],
+    ["Client 1 Retirement", calc.client1_retirement_total], ["Client 2 Retirement", calc.client2_retirement_total],
+    ["Non-Retirement Total", calc.non_retirement_total], ["Trust Value", calc.trust_value],
+    ["Grand Total Net Worth", calc.grand_total_net_worth], ["Liabilities Total", calc.liabilities_total],
+  ];
+  document.getElementById("calcGrid").innerHTML = items.map(([label,val]) => `
+    <div class="calc-item"><div class="label">${label}</div><div class="value">${typeof val === 'number' ? '$'+val.toLocaleString(undefined,{maximumFractionDigits:2}) : val}</div></div>
+  `).join("");
+
+  document.getElementById("pdfLinks").innerHTML = `
+    <a href="${API}/reports/${report.id}/pdf/sacs" target="_blank">Download SACS PDF</a>
+    <a href="${API}/reports/${report.id}/pdf/tcc" target="_blank">Download TCC PDF</a>
+  `;
+}
+
+loadClients();
+</script>
+</body>
+</html>
