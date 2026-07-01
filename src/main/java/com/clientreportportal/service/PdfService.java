@@ -138,46 +138,68 @@ public class PdfService {
                 .filter(a -> a.getBucket() == AccountBucket.NON_RETIREMENT)
                 .collect(Collectors.toList());
 
-            drawRoundRect(cb, 50, height - 170, width - 100, 70, DARK, DARK, 10);
-            text(cb, "TOTAL CLIENT NET WORTH", 72, height - 128, WHITE, 10, true, PdfContentByte.ALIGN_LEFT);
-            text(cb, money(calc.grandTotalNetWorth()), width - 72, height - 135, WHITE, 22, true, PdfContentByte.ALIGN_RIGHT);
-            text(cb, "Liabilities are tracked separately and not subtracted here", 72, height - 152, LIGHT_GRAY, 8, false, PdfContentByte.ALIGN_LEFT);
+            // ── Client info bubbles ──────────────────────────────────────────
+            float infoR = 38;
+            float infoY = height - 140;
+            drawInfoBubble(cb, client.getClient1Name(), client.getClient1Dob(),
+                client.getClient1SsnLast4(), width / 2 - 120, infoY, infoR, GREEN);
+            drawInfoBubble(cb, client.getClient2Name(), client.getClient2Dob(),
+                client.getClient2SsnLast4(), width / 2 + 120, infoY, infoR, GREEN);
 
-            float cardY = height - 395;
-            float cardW = 160;
-            float cardH = 185;
-            drawAccountCard(cb, "Client 1 Retirement", money(calc.client1RetirementTotal()), client1Ret,
-                balancesByAccount, 50, cardY, cardW, cardH, BLUE);
-            drawValueCard(cb, "Trust / Home Value", money(calc.trustValue()), "Zillow/manual value",
-                226, cardY, cardW, cardH, TRUST_GRAY);
-            drawAccountCard(cb, "Client 2 Retirement", money(calc.client2RetirementTotal()), client2Ret,
-                balancesByAccount, 402, cardY, cardW, cardH, GREEN);
+            // ── Retirement rows (top) ────────────────────────────────────────
+            float retY = height - 255;
+            drawRetirementSection(cb, "Client 1 Retirement", money(calc.client1RetirementTotal()),
+                client1Ret, balancesByAccount, width / 4, retY, BLUE);
+            drawRetirementSection(cb, "Client 2 Retirement", money(calc.client2RetirementTotal()),
+                client2Ret, balancesByAccount, 3 * width / 4, retY, GREEN);
 
-            float wideY = height - 525;
-            drawAccountCard(cb, "Non-Retirement Assets", money(calc.nonRetirementTotal()), nonRet,
-                balancesByAccount, 50, wideY, width - 100, 95, GRAY);
+            // ── Trust bubble (center) ────────────────────────────────────────
+            float trustR = 50;
+            float trustY = height - 390;
+            drawBubble(cb, width / 2, trustY, trustR, TRUST_GRAY);
+            text(cb, "TRUST", width / 2, trustY + 14, GRAY, 9, true, PdfContentByte.ALIGN_CENTER);
+            text(cb, money(calc.trustValue()), width / 2, trustY - 1, DARK, 10, true, PdfContentByte.ALIGN_CENTER);
+            text(cb, "Home / Zillow", width / 2, trustY - 15, GRAY, 7, false, PdfContentByte.ALIGN_CENTER);
 
-            float liabilitiesY = height - 665;
-            drawRoundRect(cb, 50, liabilitiesY, width - 100, 105, WHITE, LINE_GRAY, 8);
-            text(cb, "Liabilities", 72, liabilitiesY + 80, DARK, 11, true, PdfContentByte.ALIGN_LEFT);
-            text(cb, money(calc.liabilitiesTotal()), width - 72, liabilitiesY + 80, RED, 12, true, PdfContentByte.ALIGN_RIGHT);
+            // ── Summary boxes — retirement totals ────────────────────────────
+            drawSummaryBox(cb, "Client 1 Retirement Total", money(calc.client1RetirementTotal()),
+                50, height - 470, 220, 36);
+            drawSummaryBox(cb, "Client 2 Retirement Total", money(calc.client2RetirementTotal()),
+                width - 270, height - 470, 220, 36);
 
+            // ── Non-retirement bubbles (bottom) ──────────────────────────────
+            float nonRetY = height - 545;
+            text(cb, "Non-Retirement", width / 2, nonRetY + 20, GRAY, 9, true, PdfContentByte.ALIGN_CENTER);
+            drawAccountBubblesRow(cb, nonRet, balancesByAccount, width / 2, nonRetY - 14, 38, 95);
+
+            // ── Summary boxes — non-ret + grand total ────────────────────────
+            drawSummaryBox(cb, "Non-Retirement Total", money(calc.nonRetirementTotal()),
+                50, height - 638, 220, 36);
+            drawSummaryBox(cb, "Grand Total Net Worth", money(calc.grandTotalNetWorth()),
+                width - 270, height - 638, 220, 36);
+
+            // ── Liabilities (separate section, bottom) ───────────────────────
             Map<Long, LiabilityBalance> liabilityBalancesById = new HashMap<>();
             for (LiabilityBalance lb : report.getLiabilityBalances()) {
                 liabilityBalancesById.put(lb.getLiability().getId(), lb);
             }
-            float y = liabilitiesY + 58;
+            float liabBoxY = height - 700;
+            drawRoundRect(cb, 50, liabBoxY - 30, width - 100, 80, WHITE, LINE_GRAY, 8);
+            text(cb, "Liabilities  (tracked separately — not subtracted from net worth)",
+                width / 2, liabBoxY + 36, GRAY, 8, false, PdfContentByte.ALIGN_CENTER);
+            text(cb, money(calc.liabilitiesTotal()), width / 2, liabBoxY + 20, RED, 12, true, PdfContentByte.ALIGN_CENTER);
+
+            float lx = 70;
+            float ly = liabBoxY - 4;
             for (Liability liability : client.getLiabilities()) {
                 LiabilityBalance lbRow = liabilityBalancesById.get(liability.getId());
                 double bal = lbRow != null ? lbRow.getBalance() : 0.0;
-                text(cb, safeLabel(liability.getLiabilityType(), "Liability") + " (" + liability.getInterestRate() + "%)",
-                    72, y, GRAY, 8, false, PdfContentByte.ALIGN_LEFT);
-                text(cb, money(bal), width - 72, y, BLACK, 8, false, PdfContentByte.ALIGN_RIGHT);
-                y -= 16;
-                if (y < liabilitiesY + 18) {
-                    text(cb, "Additional liabilities omitted from this MVP layout", 72, y, GRAY, 7, false, PdfContentByte.ALIGN_LEFT);
-                    break;
-                }
+                String label = safeLabel(liability.getLiabilityType(), "Liability")
+                    + "  " + liability.getInterestRate() + "%";
+                text(cb, label, lx, ly, GRAY, 8, false, PdfContentByte.ALIGN_LEFT);
+                text(cb, money(bal), lx + 160, ly, BLACK, 8, false, PdfContentByte.ALIGN_LEFT);
+                lx += 200;
+                if (lx > width - 100) break;
             }
 
             document.close();
@@ -187,60 +209,64 @@ public class PdfService {
         return baos.toByteArray();
     }
 
-    private void drawAccountCard(PdfContentByte cb, String title, String total, List<Account> accounts,
-                                 Map<Long, AccountBalance> balancesByAccount, float x, float y, float w, float h, Color accent) {
-        drawRoundRect(cb, x, y, w, h, PANEL_GRAY, LINE_GRAY, 8);
-        drawRect(cb, x, y + h - 8, w, 8, accent);
-        text(cb, title, x + 14, y + h - 30, DARK, 10, true, PdfContentByte.ALIGN_LEFT);
-        text(cb, total, x + 14, y + h - 50, accent, 13, true, PdfContentByte.ALIGN_LEFT);
+    private void drawInfoBubble(PdfContentByte cb, String name, java.time.LocalDate dob,
+                                String ssnLast4, float cx, float cy, float r, Color color) {
+        if (name == null || name.isBlank()) return;
+        Color tint = new Color(color.getRed(), color.getGreen(), color.getBlue(), 40);
+        drawBubble(cb, cx, cy, r, tint);
+        cb.setColorStroke(color);
+        cb.setLineWidth(1.5f);
+        cb.ellipse(cx - r, cy - r, cx + r, cy + r);
+        cb.stroke();
+        text(cb, name, cx, cy + 18, DARK, 8, true, PdfContentByte.ALIGN_CENTER);
+        if (dob != null) {
+            text(cb, "DOB: " + dob, cx, cy + 4, GRAY, 7, false, PdfContentByte.ALIGN_CENTER);
+        }
+        if (ssnLast4 != null && !ssnLast4.isBlank()) {
+            text(cb, "SSN: xxx-" + ssnLast4, cx, cy - 10, GRAY, 7, false, PdfContentByte.ALIGN_CENTER);
+        }
+    }
 
-        float rowY = y + h - 76;
-        if (accounts.isEmpty()) {
-            text(cb, "No accounts entered", x + 14, rowY, GRAY, 8, false, PdfContentByte.ALIGN_LEFT);
+    private void drawRetirementSection(PdfContentByte cb, String label, String total,
+                                       List<Account> accounts, Map<Long, AccountBalance> balByAcc,
+                                       float cx, float cy, Color color) {
+        text(cb, label, cx, cy + 16, color, 9, true, PdfContentByte.ALIGN_CENTER);
+        text(cb, total, cx, cy + 3, DARK, 9, true, PdfContentByte.ALIGN_CENTER);
+        // leave 12pt gap then draw bubbles below
+        drawAccountBubblesRow(cb, accounts, balByAcc, cx, cy - 50, 34, 82);
+    }
+
+    private void drawAccountBubblesRow(PdfContentByte cb, List<Account> accounts,
+                                        Map<Long, AccountBalance> balByAcc,
+                                        float cx, float cy, float r, float spacing) {
+        int n = accounts.size();
+        if (n == 0) {
+            drawBubble(cb, cx, cy, r, LIGHT_GRAY);
+            text(cb, "—", cx, cy - 4, GRAY, 8, false, PdfContentByte.ALIGN_CENTER);
             return;
         }
-
-        int shown = 0;
-        for (Account account : accounts) {
-            if (rowY < y + 18) {
-                text(cb, "+" + (accounts.size() - shown) + " more", x + 14, rowY, GRAY, 7, false, PdfContentByte.ALIGN_LEFT);
-                break;
-            }
-            AccountBalance balRow = balancesByAccount.get(account.getId());
-            double bal = balRow != null ? balRow.getBalance() : 0.0;
-            drawCircle(cb, x + 18, rowY + 2, 3, accent);
-            text(cb, truncate(safeLabel(account.getAccountType(), "Account"), 22), x + 28, rowY, BLACK, 8, false, PdfContentByte.ALIGN_LEFT);
-            text(cb, money(bal), x + w - 14, rowY, GRAY, 8, false, PdfContentByte.ALIGN_RIGHT);
-            rowY -= 16;
-            shown++;
-        }
-    }
-
-    private void drawValueCard(PdfContentByte cb, String title, String value, String caption,
-                               float x, float y, float w, float h, Color fill) {
-        drawRoundRect(cb, x, y, w, h, fill, LINE_GRAY, 8);
-        text(cb, title, x + w / 2, y + h - 42, DARK, 10, true, PdfContentByte.ALIGN_CENTER);
-        drawBubble(cb, x + w / 2, y + h / 2 - 2, 42, WHITE);
-        text(cb, "TRUST", x + w / 2, y + h / 2 + 6, GRAY, 8, true, PdfContentByte.ALIGN_CENTER);
-        text(cb, value, x + w / 2, y + h / 2 - 9, BLACK, 10, true, PdfContentByte.ALIGN_CENTER);
-        text(cb, caption, x + w / 2, y + 24, GRAY, 7, false, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawAccountBubbles(PdfContentByte cb, List<Account> accounts, Map<Long, AccountBalance> balancesByAccount,
-                                     float centerX, float centerY, float radius, float spread) {
-        int n = accounts.size();
+        float totalWidth = (n - 1) * spacing;
+        float startX = cx - totalWidth / 2f;
         for (int i = 0; i < n; i++) {
             Account acc = accounts.get(i);
-            float offset = (i - (n - 1) / 2.0f) * spread;
-            float bx = centerX + offset;
-            float by = centerY;
-            AccountBalance balRow = balancesByAccount.get(acc.getId());
+            float bx = startX + i * spacing;
+            AccountBalance balRow = balByAcc.get(acc.getId());
             double bal = balRow != null ? balRow.getBalance() : 0.0;
-            drawBubble(cb, bx, by, radius, LIGHT_GRAY);
-            String label = acc.getAccountType().length() > 14 ? acc.getAccountType().substring(0, 14) : acc.getAccountType();
-            text(cb, label, bx, by + 6, BLACK, 7, true, PdfContentByte.ALIGN_CENTER);
-            text(cb, money(bal), bx, by - 6, BLACK, 7, false, PdfContentByte.ALIGN_CENTER);
+            drawBubble(cb, bx, cy, r, LIGHT_GRAY);
+            String lbl = truncate(safeLabel(acc.getAccountType(), "Acct"), 10);
+            text(cb, lbl, bx, cy + 8, DARK, 6, true, PdfContentByte.ALIGN_CENTER);
+            if (acc.getAccountNumberLast4() != null && !acc.getAccountNumberLast4().isBlank()) {
+                text(cb, "..." + acc.getAccountNumberLast4(), bx, cy - 2, GRAY, 6, false, PdfContentByte.ALIGN_CENTER);
+            }
+            text(cb, money(bal), bx, cy - 13, BLACK, 6, false, PdfContentByte.ALIGN_CENTER);
         }
+    }
+
+    private void drawSummaryBox(PdfContentByte cb, String label, String value,
+                                float x, float y, float w, float h) {
+        drawRoundRect(cb, x, y, w, h, LIGHT_GRAY, LINE_GRAY, 6);
+        text(cb, label, x + 10, y + h - 14, GRAY, 7, false, PdfContentByte.ALIGN_LEFT);
+        text(cb, value, x + w - 10, y + 10, DARK, 10, true, PdfContentByte.ALIGN_RIGHT);
     }
 
     private void drawHeader(PdfContentByte cb, Client client, QuarterlyReport report, String title, float width, float height) {
