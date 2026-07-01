@@ -91,7 +91,7 @@
     <div class="panel">
       <h2>3. Quarterly Report - Enter Balances</h2>
       <div class="row">
-        <div><label>Quarter</label><input id="repQuarter" type="number" min="1" max="4" value="2" /></div>
+        <div><label>Quarter</label><select id="repQuarter"></select></div>
         <div><label>Year</label><input id="repYear" type="number" value="2026" /></div>
         <div><label>Trust / Home value (Zillow)</label><input id="repTrust" type="number" value="0" /></div>
       </div>
@@ -117,9 +117,27 @@
 
 <script>
 const API = "/api";
+const QUARTERS = [
+  { label: "Q1", value: 1 },
+  { label: "Q2", value: 2 },
+  { label: "Q3", value: 3 },
+  { label: "Q4", value: 4 },
+];
+const REPORT_YEAR_MIN = 2000;
+const REPORT_YEAR_MAX = 2100;
 let clients = [];
 let currentClient = null;
 let currentReports = [];
+
+function initializeReportPeriodControls() {
+  const quarterSelect = document.getElementById("repQuarter");
+  quarterSelect.innerHTML = QUARTERS.map(q => `<option value="${q.value}">${q.label}</option>`).join("");
+  quarterSelect.value = String(QUARTERS[1].value);
+
+  const yearInput = document.getElementById("repYear");
+  yearInput.min = REPORT_YEAR_MIN;
+  yearInput.max = REPORT_YEAR_MAX;
+}
 
 async function loadClients() {
   const res = await fetch(`${API}/clients`);
@@ -219,12 +237,12 @@ async function generateReport() {
   showReportError("");
   const quarter = parseInt(document.getElementById("repQuarter").value);
   const year = parseInt(document.getElementById("repYear").value);
-  if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
-    showReportError("Quarter must be between 1 and 4.");
+  if (!QUARTERS.some(q => q.value === quarter)) {
+    showReportError(`Quarter must be one of: ${QUARTERS.map(q => q.label).join(", ")}.`);
     return;
   }
-  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-    showReportError("Year must be between 2000 and 2100.");
+  if (!Number.isInteger(year) || year < REPORT_YEAR_MIN || year > REPORT_YEAR_MAX) {
+    showReportError(`Year must be between ${REPORT_YEAR_MIN} and ${REPORT_YEAR_MAX}.`);
     return;
   }
   const existingReport = currentReports.find(r => r.quarter === quarter && r.year === year);
@@ -341,6 +359,7 @@ function showReportError(message) {
   el.classList.toggle("hidden", !message);
 }
 
+initializeReportPeriodControls();
 loadClients();
 </script>
 </body>
