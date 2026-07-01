@@ -8,7 +8,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "quarterly_reports",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"client_id", "quarter", "year"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"client_id", "quarter", "report_year"}))
 public class QuarterlyReport {
 
     @Id
@@ -20,6 +20,8 @@ public class QuarterlyReport {
     private Client client;
 
     private int quarter;
+
+    @Column(name = "report_year")
     private int year;
     private LocalDate asOfDate;
 
