@@ -34,6 +34,9 @@
   .hidden { display: none; }
   .error { color: var(--red); background: #fff5f5; border: 1px solid #ffc9c9; border-radius: 6px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
   .pdf-links a { display: inline-block; margin-right: 10px; margin-top: 10px; padding: 8px 14px; background: var(--green); color: white; border-radius: 6px; text-decoration: none; font-size: 14px; }
+  .link-button { display: inline-block; margin: 0 6px 0 0; padding: 6px 10px; border-radius: 6px; background: var(--blue); color: white; text-decoration: none; font-size: 12px; border: none; cursor: pointer; }
+  .link-button.green { background: var(--green); }
+  .empty-state { margin: 10px 0 0; color: var(--gray); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -98,8 +101,13 @@
       <div id="reportError" class="error hidden"></div>
     </div>
 
+    <div class="panel">
+      <h2>4. Previous Reports</h2>
+      <div id="reportsList"></div>
+    </div>
+
     <div id="resultsPanel" class="panel hidden">
-      <h2>4. Results</h2>
+      <h2>5. Results</h2>
       <div class="calc-grid" id="calcGrid"></div>
       <div class="pdf-links" id="pdfLinks"></div>
     </div>
@@ -111,6 +119,7 @@
 const API = "/api";
 let clients = [];
 let currentClient = null;
+let currentReports = [];
 
 async function loadClients() {
   const res = await fetch(`${API}/clients`);
@@ -153,6 +162,7 @@ async function selectClient(id) {
   document.getElementById("resultsPanel").classList.add("hidden");
   renderAccountsAndLiabilities();
   renderBalanceInputs();
+  await loadReports();
 }
 
 function renderAccountsAndLiabilities() {
@@ -227,10 +237,53 @@ async function generateReport() {
     await ensureOk(calcRes, "Could not calculate report");
     const calc = await calcRes.json();
     renderResults(report, calc);
+    await loadReports();
   } catch (error) {
     document.getElementById("resultsPanel").classList.add("hidden");
     showReportError(error.message);
   }
+}
+
+async function loadReports() {
+  const res = await fetch(`${API}/clients/${currentClient.id}/reports`);
+  await ensureOk(res, "Could not load reports");
+  currentReports = await res.json();
+  renderReportsList();
+}
+
+function renderReportsList() {
+  const list = document.getElementById("reportsList");
+  if (!currentReports.length) {
+    list.innerHTML = "<p class='empty-state'>No reports generated yet.</p>";
+    return;
+  }
+
+  const sorted = [...currentReports].sort((a, b) => b.year - a.year || b.quarter - a.quarter || b.id - a.id);
+  list.innerHTML = `
+    <table><thead><tr><th>Period</th><th>Date</th><th>Salary</th><th>Expenses</th><th>Actions</th></tr></thead><tbody>
+      ${sorted.map(r => `
+        <tr>
+          <td>Q${r.quarter} ${r.year}</td>
+          <td>${r.as_of_date || ''}</td>
+          <td>$${r.salary_snapshot.toLocaleString()}</td>
+          <td>$${r.expense_budget_snapshot.toLocaleString()}</td>
+          <td>
+            <button class="link-button" onclick="showSavedReport(${r.id})">View</button>
+            <a class="link-button green" href="${API}/reports/${r.id}/pdf/sacs" target="_blank">SACS</a>
+            <a class="link-button green" href="${API}/reports/${r.id}/pdf/tcc" target="_blank">TCC</a>
+          </td>
+        </tr>
+      `).join("")}
+    </tbody></table>
+  `;
+}
+
+async function showSavedReport(reportId) {
+  const report = currentReports.find(r => r.id === reportId);
+  const calcRes = await fetch(`${API}/reports/${reportId}/calculate`);
+  await ensureOk(calcRes, "Could not calculate saved report");
+  const calc = await calcRes.json();
+  renderResults(report, calc);
 }
 
 function renderResults(report, calc) {
