@@ -11,7 +11,7 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.awportal</groupId>
+  <groupId>com.clientreportportal</groupId>
   <artifactId>client-report-portal</artifactId>
   <version>0.1.0</version>
   <name>client-report-portal</name>
@@ -53,7 +53,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
-          <mainClass>com.awportal.AwPortalApplication</mainClass>
+          <mainClass>com.clientreportportal.ClientReportPortalApplication</mainClass>
           <optimizedLaunch>false</optimizedLaunch>
         </configuration>
       </plugin>

@@ -61,8 +61,8 @@ the packaged jar avoids that classpath issue.
 ## Project layout
 
 ```text
-src/main/java/com/awportal/
-  AwPortalApplication.java
+src/main/java/com/clientreportportal/
+  ClientReportPortalApplication.java
   model/          Client, Account, Liability, QuarterlyReport, balances
   dto/            request/response records
   repository/     Spring Data JPA repositories
