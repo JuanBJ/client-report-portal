@@ -1,8 +1,9 @@
-# AW Client Report Portal - Java / Spring Boot MVP
+# Client Report Portal - Java / Spring Boot MVP
 
-Java/Spring Boot implementation of the AW client report workflow. The app focuses
-on the core time-boxed path: create a client, add accounts and liabilities, enter
-quarterly balances, calculate the report values, and generate SACS/TCC PDFs.
+Java/Spring Boot implementation of a client financial report workflow. The app
+focuses on the core time-boxed path: create a client, add accounts and
+liabilities, enter quarterly balances, calculate the report values, and generate
+SACS/TCC PDFs.
 
 ## Running it
 
@@ -29,7 +30,7 @@ Build a runnable jar:
 
 ```powershell
 .\mvnw.cmd clean package -DskipTests
-java -jar target\aw-client-report-portal-0.1.0.jar
+java -jar target\client-report-portal-0.1.0.jar
 ```
 
 On macOS/Linux, use `./mvnw clean package -DskipTests`.
