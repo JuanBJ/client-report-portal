@@ -11,13 +11,21 @@ This repository includes Maven bootstrap scripts, so Maven does not need to be
 installed globally. You only need a JDK on PATH.
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+.\run.cmd
+```
+
+Or run the build and jar manually:
+
+```powershell
+.\mvnw.cmd clean package -DskipTests
+java -jar target\client-report-portal-0.1.0.jar
 ```
 
 On macOS/Linux:
 
 ```bash
-./mvnw spring-boot:run
+./mvnw clean package -DskipTests
+java -jar target/client-report-portal-0.1.0.jar
 ```
 
 Then open:
@@ -26,14 +34,15 @@ Then open:
 http://localhost:8080
 ```
 
-Build a runnable jar:
+Build a runnable jar without starting it:
 
 ```powershell
 .\mvnw.cmd clean package -DskipTests
-java -jar target\client-report-portal-0.1.0.jar
 ```
 
-On macOS/Linux, use `./mvnw clean package -DskipTests`.
+Note: on Windows paths with spaces or accented characters, `spring-boot:run` can
+fail because the plugin launches Java with a temporary classpath file. Running
+the packaged jar avoids that classpath issue.
 
 ## What is implemented
 
